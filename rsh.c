@@ -30,26 +30,28 @@ void sendmsg (char *user, char *target, char *msg) {
 	// TODO:
 	// Send a request to the server to send the message (msg) to the target user (target)
 	// by creating the message structure and writing it to server's FIFO
-
+	int server;
 	// create a message structure
     struct message m;
-    strcpy(m.source, user);
-    strcpy(m.target, target);
-    strcpy(m.msg, msg);
-
-    // open up the server FIFO for writing
-    int serverFD = open("serverFIFO", O_WRONLY);
-    if (serverFD < 0) {
-        perror("Failed to open server FIFO");
+    // Open the server FIFO
+    server = open("serverFIFO", O_WRONLY);
+    if (server == -1) {
+        perror("Failed to open serverFIFO");
         return;
     }
 
-    // write the message struct to the server FIFO
-    if (write(serverFD, &m, sizeof(struct message)) < 0) {
-        perror("Failed to send message to server");
+    // Populate the message structure
+    snprintf(m.source, sizeof(m.source), "%s", user);
+    snprintf(m.target, sizeof(m.target), "%s", target);
+    snprintf(m.msg, sizeof(m.msg), "%s", msg);
+
+    // Write the message to the server FIFO
+    if (write(server, &m, sizeof(m)) <= 0) {
+        perror("Failed to write to serverFIFO");
     }
 
-    close(serverFD);
+    // Close the server FIFO
+    close(server);
 }
 
 void* messageListener(void *arg) {
@@ -60,27 +62,25 @@ void* messageListener(void *arg) {
 	// following format
 	// Incoming message from [source]: [message]
 	// put an end of line at the end of the message
-	char fifoName[50];
+	char userFIFO[50];
 	// a users fifo should be naed after their username
-    sprintf(fifoName, "%s", uName); 
-
-    int userFD = open(fifoName, O_RDONLY);
-    if (userFD < 0) {
+	snprintf(userFIFO, sizeof(userFIFO), "%s", uName); // Use the username as the FIFO name
+    int userFIFO_fd = open(userFIFO, O_RDONLY);
+    if (userFIFO_fd == -1) {
         perror("Failed to open user FIFO");
-        pthread_exit((void*)1);
+        pthread_exit((void *)-1);
     }
 
-    struct message incomingMsg;
+    struct message incoming;
     while (1) {
         // read the incoming messages
-        ssize_t bytesRead = read(userFD, &incomingMsg, sizeof(struct message));
-        if (bytesRead > 0) {
-            printf("Incoming message from [%s]: %s\n", incomingMsg.source, incomingMsg.msg);
+        if (read(userFIFO_fd, &incoming, sizeof(incoming)) > 0) {
+            printf("Incoming message from [%s]: %s\n", incoming.source, incoming.msg);
             fflush(stdout);
         }
     }
 
-    close(userFD);
+    close(userFIFO_fd);
     pthread_exit((void*)0);
 }
 

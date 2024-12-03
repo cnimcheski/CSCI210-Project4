@@ -65,26 +65,30 @@ int main() {
 
 
 		// Read requests from serverFIFO
-        ssize_t bytesRead = read(server, &req, sizeof(struct message));
-        if (bytesRead <= 0) {
-            continue; // No data or error
-        }
+        if (read(server, &req, sizeof(req)) <= 0) {
+			perror("Failed to read from serverFIFO");
+			continue;
+		}
 
         printf("Received a request from %s to send the message '%s' to %s.\n",
                req.source, req.msg, req.target);
 
-        // Open target FIFO and write the message
-        target = open(req.target, O_WRONLY);
-        if (target < 0) {
-            perror("Failed to open target FIFO");
-            continue;
-        }
+		char targetFIFO[256];
+		snprintf(targetFIFO, sizeof(targetFIFO), "%s", req.target); // Assuming `req.target` is the name of the FIFO
 
-        if (write(target, &req, sizeof(struct message)) < 0) {
-            perror("Failed to write to target FIFO");
-        }
+		target = open(targetFIFO, O_WRONLY);
+		if (target == -1) {
+			perror("Failed to open target FIFO");
+			continue;
+		}
 
-        close(target);
+		// Write the message to the target user's FIFO
+		if (write(target, &req, sizeof(req)) <= 0) {
+			perror("Failed to write to target FIFO");
+		}
+
+		// Close the target FIFO
+		close(target);
 	}
 	close(server);
 	close(dummyfd);
