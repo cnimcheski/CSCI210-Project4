@@ -31,61 +31,36 @@ int main() {
 	while (1) {
 		// TODO:
 		// read requests from serverFIFO
-		// if (read(server, &req, sizeof(req)) > 0) {
-		// 	printf("Received a request from %s to send the message '%s' to %s.\n", 
-		// 	       req.source, req.msg, req.target);
-
-		// 	// TODO:
-		// 	// open target FIFO and write the whole message struct to the target FIFO
-		// 	// Construct the target FIFO name
-		// 	char targetFIFO[100];
-		// 	snprintf(targetFIFO, sizeof(targetFIFO), "%sFIFO", req.target);
-
-		// 	// Open target FIFO for writing
-		// 	target = open(targetFIFO, O_WRONLY);
-		// 	if (target == -1) {
-		// 		perror("Error opening target FIFO");
-		// 		continue; // Skip to the next message
-		// 	}
-
-		// 	// Write the message to the target FIFO
-		// 	if (write(target, &req, sizeof(req)) == -1) {
-		// 		perror("Error writing to target FIFO");
-		// 	}
-
-		// 	// TODO:
-		// 	// close target FIFO after writing the message
-		// 	close(target);
-		// } else {
-		// 	perror("Error reading from serverFIFO");
-		// 	break; 
-		// }
-
-
-
-
-		// Read requests from serverFIFO
-        if (read(server, &req, sizeof(req)) <= 0) {
+		ssize_t readRequest = read(server, &req, sizeof(req));
+        if (readRequest < 0) {
 			perror("Failed to read from serverFIFO");
 			continue;
 		}
 
-        printf("Received a request from %s to send the message '%s' to %s.\n",
-               req.source, req.msg, req.target);
-
-		char targetFIFO[256];
-		snprintf(targetFIFO, sizeof(targetFIFO), "%s", req.target); // Assuming `req.target` is the name of the FIFO
-
-		target = open(targetFIFO, O_WRONLY);
-		if (target == -1) {
-			perror("Failed to open target FIFO");
+		if (readRequest == 0) {
+			printf("Nothing received yet...\n");
 			continue;
 		}
 
-		// Write the message to the target user's FIFO
-		if (write(target, &req, sizeof(req)) <= 0) {
-			perror("Failed to write to target FIFO");
-		}
+        printf("Received a request from %s to send the message '%s' to %s.\n", req.source, req.msg, req.target);
+
+		target = open(req.target ,O_WRONLY);
+		write(target, &req, sizeof(req));
+		close(target);
+		// char targetFIFO[256];
+		// snprintf(targetFIFO, sizeof(targetFIFO), "%s", req.target); // Assuming `req.target` is the name of the FIFO
+
+		// target = open(targetFIFO, O_WRONLY);
+
+		// // write the message to the target user's FIFO
+		// if (write(target, &req, sizeof(req)) <= 0) {
+		// 	perror("Failed to write to target FIFO");
+		// }
+
+		// if (target == -1) {
+		// 	perror("Failed to open target FIFO");
+		// 	continue;
+		// }
 
 		// Close the target FIFO
 		close(target);

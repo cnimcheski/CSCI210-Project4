@@ -30,25 +30,34 @@ void sendmsg (char *user, char *target, char *msg) {
 	// TODO:
 	// Send a request to the server to send the message (msg) to the target user (target)
 	// by creating the message structure and writing it to server's FIFO
-	int server;
 	// create a message structure
     struct message m;
-    // Open the server FIFO
-    server = open("serverFIFO", O_WRONLY);
+	// strncpy(m.source, user, sizeof(m.source) - 1);
+    // strncpy(m.target, target, sizeof(m.target) - 1);
+    // strncpy(m.msg, msg, sizeof(m.msg) - 1);
+	strcpy(m.source, user);
+	strcpy(m.target, target);
+	strcpy(m.msg, msg);
+
+    // open the server FIFO
+    int server = open("serverFIFO", O_WRONLY);
+	// make sure the serverFIFO was successfully opened
     if (server == -1) {
         perror("Failed to open serverFIFO");
         return;
     }
 
-    // Populate the message structure
-    snprintf(m.source, sizeof(m.source), "%s", user);
-    snprintf(m.target, sizeof(m.target), "%s", target);
-    snprintf(m.msg, sizeof(m.msg), "%s", msg);
+	write(server, &m, sizeof(m));
+
+    // populate the message structure
+    // snprintf(m.source, sizeof(m.source), "%s", user);
+    // snprintf(m.target, sizeof(m.target), "%s", target);
+    // snprintf(m.msg, sizeof(m.msg), "%s", msg);
 
     // Write the message to the server FIFO
-    if (write(server, &m, sizeof(m)) <= 0) {
-        perror("Failed to write to serverFIFO");
-    }
+    // if (write(server, &m, sizeof(m)) <= 0) {
+    //     perror("Failed to write to serverFIFO");
+    // }
 
     // Close the server FIFO
     close(server);
@@ -62,11 +71,13 @@ void* messageListener(void *arg) {
 	// following format
 	// Incoming message from [source]: [message]
 	// put an end of line at the end of the message
-	char userFIFO[50];
-	// a users fifo should be naed after their username
-	snprintf(userFIFO, sizeof(userFIFO), "%s", uName); // Use the username as the FIFO name
-    int userFIFO_fd = open(userFIFO, O_RDONLY);
-    if (userFIFO_fd == -1) {
+	int userFIFO = open(uName, O_RDONLY);
+
+	// char userFIFO[50];
+	// // a users fifo should be naed after their username
+	// snprintf(userFIFO, sizeof(userFIFO), "%s", uName); // Use the username as the FIFO name
+    // int userFIFO_fd = open(userFIFO, O_RDONLY);
+    if (userFIFO == -1) {
         perror("Failed to open user FIFO");
         pthread_exit((void *)-1);
     }
@@ -74,13 +85,13 @@ void* messageListener(void *arg) {
     struct message incoming;
     while (1) {
         // read the incoming messages
-        if (read(userFIFO_fd, &incoming, sizeof(incoming)) > 0) {
+		int readRequest = read(userFIFO, &incoming, sizeof(incoming));
+        if (readRequest > 0) {
             printf("Incoming message from [%s]: %s\n", incoming.source, incoming.msg);
-            fflush(stdout);
         }
     }
 
-    close(userFIFO_fd);
+    close(userFIFO);
     pthread_exit((void*)0);
 }
 
@@ -151,19 +162,47 @@ int main(int argc, char **argv) {
 		// printf("sendmsg: you have to specify target user\n");
 		// if no message is specified, you should print the followingA
  		// printf("sendmsg: you have to enter a message\n");
+
+		// char *target = strtok(NULL, " ");
+		// if (!target) {
+		// 	printf("sendmsg: you have to specify target user\n");
+		// 	continue;
+		// }
+
+		// char *msg = strtok(NULL, "");
+		// if (!msg) {
+		// 	printf("sendmsg: you have to enter a message\n");
+		// 	continue;
+		// }
+
+		// sendmsg(uName, target, msg);
+		// continue;
+
+		
 		char *target = strtok(NULL, " ");
-		if (!target) {
+		char *user= malloc(20);
+		strcpy(user, target);
+		if(target == NULL){
 			printf("sendmsg: you have to specify target user\n");
 			continue;
 		}
 
-		char *msg = strtok(NULL, "");
-		if (!msg) {
+		char *msg = malloc(256);
+		target = strtok(NULL, " ");
+		if(target == NULL){
 			printf("sendmsg: you have to enter a message\n");
 			continue;
 		}
 
-		sendmsg(uName, target, msg);
+		strcat(msg, target);
+		target = strtok(NULL, " ");
+		while(target != NULL){
+			strcat(msg, " ");
+			strcat(msg, target);
+			target = strtok(NULL, " ");
+		}
+		sendmsg(uName, user, msg);
+
 		continue;
 	}
 
