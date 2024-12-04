@@ -42,7 +42,7 @@ int main() {
 			continue;
 		}
 
-        printf("Received a request from %s to send the message '%s' to %s.\n", req.source, req.msg, req.target);
+        // printf("Received a request from %s to send the message '%s' to %s.\n", req.source, req.msg, req.target);
 
 		target = open(req.target ,O_WRONLY);
 		write(target, &req, sizeof(req));
