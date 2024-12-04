@@ -42,27 +42,12 @@ int main() {
 			continue;
 		}
 
+		// if we make it here...we successfully read from serverFIFO
         printf("Received a request from %s to send the message %s to %s.\n", req.source, req.msg, req.target);
 
 		target = open(req.target ,O_WRONLY);
 		write(target, &req, sizeof(req));
 		close(target);
-		// char targetFIFO[256];
-		// snprintf(targetFIFO, sizeof(targetFIFO), "%s", req.target); // Assuming `req.target` is the name of the FIFO
-
-		// target = open(targetFIFO, O_WRONLY);
-
-		// // write the message to the target user's FIFO
-		// if (write(target, &req, sizeof(req)) <= 0) {
-		// 	perror("Failed to write to target FIFO");
-		// }
-
-		// if (target == -1) {
-		// 	perror("Failed to open target FIFO");
-		// 	continue;
-		// }
-
-		// Close the target FIFO
 	}
 	close(server);
 	close(dummyfd);
