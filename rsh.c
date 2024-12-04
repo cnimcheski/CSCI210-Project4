@@ -87,7 +87,7 @@ void* messageListener(void *arg) {
         // read the incoming messages
 		int readRequest = read(userFIFO, &incoming, sizeof(incoming));
         if (readRequest > 0) {
-            printf("Incoming message from [%s]: %s\n", incoming.source, incoming.msg);
+            printf("Incoming message from %s: %s\n", incoming.source, incoming.msg);
         }
     }
 
